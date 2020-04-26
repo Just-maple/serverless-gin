@@ -22,7 +22,55 @@ go get github.com/Just-maple/serverless-gin
 
 ## Usage example
 
-look at [example](./example/internal)
+[easy example](./example/internal/easy/easy.go)
+
+function as service
+
+```go
+package main
+
+import (
+	"context"
+	"errors"
+
+	svrlessgin "github.com/Just-maple/serverless-gin"
+	"github.com/gin-gonic/gin/ginS"
+)
+
+var (
+	easy = svrlessgin.NewEasyWrapper()
+)
+
+type Param struct {
+	A int `form:"a"`
+	B int `form:"b"`
+}
+
+func main() {
+	ginS.GET("add", easy(func(ctx context.Context, param Param) (int, error) {
+		return param.A + param.B, nil
+	}))
+	ginS.GET("dec", easy(func(ctx context.Context, param Param) (int, error) {
+		return param.A - param.B, nil
+	}))
+	ginS.GET("multi", easy(func(ctx context.Context, param Param) (int, error) {
+		return param.A * param.B, nil
+	}))
+	ginS.GET("divide", easy(func(ctx context.Context, param Param) (int, error) {
+		if param.B == 0{
+			return 0, errors.New("b cannot be zero")
+        }   
+		return param.A * param.B, nil
+	}))
+
+	panic(ginS.Run(":80"))
+}
+
+```
+ 
+
+
+## Custom IO Interface Example
 
 there is some service interface in [common](./example/internal/common) 
 
@@ -30,12 +78,41 @@ actually in ours real project service modules and interface will much more than 
 
 if your want to provide them as api by gin
 
-you can use the [raw](./example/internal/gin_raw/api.go) way
+- use the clean and simply [svrless](./example/internal/svrless/api.go) way
 
-like
+
+```go
+// this example provide all api routers
+
+package main
+
+import (
+	"github.com/Just-maple/serverless-gin/example/internal/common"
+	"github.com/gin-gonic/gin"
+)
+
+func RegisterComputeService(group gin.IRoutes, svc common.Compute) {
+	group.GET("/add", wrapper(svc.Add))
+	group.GET("/dec", wrapper(svc.Dec))
+}
+
+func RegisterAccountService(group gin.IRoutes, svc common.Account) {
+	group.GET("/new", wrapper(svc.NewAccount))
+	group.POST("/edit", wrapper(svc.EditAccountPassword))
+}
+
+func RegisterOrderService(group gin.IRoutes, svc common.Order) {
+	group.PUT("/new", wrapper(svc.New))
+}
+```  
+
+
+
+- or  use the [raw](./example/internal/gin_raw/api.go) way like
 
 ```go
 // this example provide only one api router
+
 package order
 
 import (
@@ -68,36 +145,7 @@ func RegisterOrderService(group gin.IRoutes, svc common.Order) {
 }
 
 ```
-
-or 
   
-use the clean and simply [svrless](./example/internal/svrless/api.go) way
-
-
-```go
-// this example provide all api routers
-package main
-
-import (
-	"github.com/Just-maple/serverless-gin/example/internal/common"
-	"github.com/gin-gonic/gin"
-)
-
-func RegisterComputeService(group gin.IRoutes, svc common.Compute) {
-	group.GET("/add", wrapper(svc.Add))
-	group.GET("/dec", wrapper(svc.Dec))
-}
-
-func RegisterAccountService(group gin.IRoutes, svc common.Account) {
-	group.GET("/new", wrapper(svc.NewAccount))
-	group.POST("/edit", wrapper(svc.EditAccountPassword))
-}
-
-func RegisterOrderService(group gin.IRoutes, svc common.Order) {
-	group.PUT("/new", wrapper(svc.New))
-}
-```  
-
 per request may lost `5µs` cause it based on `reflect`
 
 but you can save time `(api-count - 1) * time-waist-in-api-code` in your life

@@ -7,12 +7,11 @@ import (
 )
 
 var (
-	svr     = gin.New()
+	svr     = gin.Default()
 	wrapper = svrlessgin.CreateIOWrapper(MyIO{})
 )
 
 func main() {
-	svr.Use(gin.Logger())
 	RegisterComputeService(svr.Group("compute"), common.ComputeSvc{})
 	RegisterAccountService(svr.Group("account"), common.AccountSvc{})
 	RegisterOrderService(svr.Group("order"), common.OrderSvc{})
