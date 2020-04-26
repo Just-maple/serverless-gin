@@ -57,10 +57,10 @@ func main() {
 		return param.A * param.B, nil
 	}))
 	ginS.GET("divide", easy(func(ctx context.Context, param Param) (int, error) {
-		if param.B == 0{
+		if param.B == 0 {
 			return 0, errors.New("b cannot be zero")
-        }   
-		return param.A * param.B, nil
+		}
+		return param.A / param.B, nil
 	}))
 
 	panic(ginS.Run(":80"))
@@ -76,8 +76,11 @@ there is some service interface in [common](./example/internal/common)
 
 actually in ours real project service modules and interface will much more than example
 
+and your params in  and response will much more complex
+
 if your want to provide them as api by gin
 
+- look at the custom io definition in [io.go](./example/internal/svrless/io.go) 
 - use the clean and simply [svrless](./example/internal/svrless/api.go) way
 
 
@@ -108,7 +111,7 @@ func RegisterOrderService(group gin.IRoutes, svc common.Order) {
 
 
 
-- or  use the [raw](./example/internal/gin_raw/api.go) way like
+- the old [raw](./example/internal/gin_raw/api.go) way
 
 ```go
 // this example provide only one api router
