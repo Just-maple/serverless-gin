@@ -31,7 +31,7 @@ func main() {
 		if param.B == 0 {
 			return 0, errors.New("b cannot be zero")
 		}
-		return param.A * param.B, nil
+		return param.A / param.B, nil
 	}))
 
 	panic(ginS.Run(":80"))

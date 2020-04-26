@@ -26,7 +26,7 @@ type (
 	easyRet struct {
 		Data interface{} `json:"data"`
 		OK   bool        `json:"ok"`
-		Err  error       `json:"err,omitempty"`
+		Err  string      `json:"err,omitempty"`
 	}
 
 	Render struct {
@@ -74,10 +74,10 @@ func (l *easyIO) Response(c *gin.Context, ret interface{}, err error) {
 	res := easyRet{
 		Data: ret,
 		OK:   err == nil,
-		Err:  err,
 	}
 	if err != nil {
 		l.logger.Printf("param bind error:%v", err)
+		res.Err = err.Error()
 		c.JSON(l.errorStatus, &res)
 		return
 	}
