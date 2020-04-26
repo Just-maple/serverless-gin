@@ -3,6 +3,7 @@ package svrlessgin
 import (
 	"context"
 	"reflect"
+	"sync"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,12 +23,19 @@ type (
 	}
 
 	adapter struct {
-		svcV       reflect.Value
-		funcNumIn  int
-		funcNumOut int
-		types      []reflect.Type
-		retFunc    func(c *gin.Context, values []reflect.Value)
-		kinds      []reflect.Kind
+		svcV           reflect.Value
+		funcNumIn      int
+		funcNumOut     int
+		firstIsContext bool
+		types          []reflect.Type
+		retFunc        func(c *gin.Context, values []reflect.Value)
+		kinds          []reflect.Kind
+		newParamPool   sync.Pool
+	}
+
+	newParam struct {
+		i []interface{}
+		v []reflect.Value
 	}
 )
 
@@ -76,16 +84,25 @@ func WrapSvcWithIO(io IO, svc interface{}) gin.HandlerFunc {
 		ad.types[i] = svcTyp.In(i)
 		ad.kinds[i] = ad.types[i].Kind()
 	}
+	ad.firstIsContext = ad.types[0] == rTypeContext
 	return ad.ginHandler(io)
 }
 
 func (ad *adapter) ginHandler(io IO) gin.HandlerFunc {
-	firstIsContext := ad.types[0] == rTypeContext
+	ad.newParamPool = sync.Pool{
+		New: func() interface{} {
+			return &newParam{
+				i: make([]interface{}, ad.funcNumIn, ad.funcNumIn),
+				v: make([]reflect.Value, ad.funcNumIn, ad.funcNumIn),
+			}
+		},
+	}
 	return func(c *gin.Context) {
-		newParamV := make([]reflect.Value, ad.funcNumIn, ad.funcNumIn)
-		newParam := make([]interface{}, ad.funcNumIn, ad.funcNumIn)
+		newP := ad.newParamPool.Get().(*newParam)
+		newParamV := newP.v
+		newParam := newP.i
 		for i := 0; i < ad.funcNumIn; i++ {
-			if i == 0 && firstIsContext {
+			if i == 0 && ad.firstIsContext {
 				continue
 			}
 			typ := ad.types[i]
@@ -96,17 +113,18 @@ func (ad *adapter) ginHandler(io IO) gin.HandlerFunc {
 			newParamV[i] = param.Elem()
 			newParam[i] = param.Interface()
 		}
-		if firstIsContext {
+		if ad.firstIsContext {
 			newParam = newParam[1:]
 		}
 		io.ParamHandler(c, newParam)
 		if c.IsAborted() {
+			ad.newParamPool.Put(newP)
 			return
 		}
-		if firstIsContext {
+		if ad.firstIsContext {
 			newParamV[0] = reflect.ValueOf(c.Request.Context())
 		}
-		retValues := ad.svcV.Call(newParamV)
-		ad.retFunc(c, retValues)
+		ad.retFunc(c, ad.svcV.Call(newParamV))
+		ad.newParamPool.Put(newP)
 	}
 }

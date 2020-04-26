@@ -3,8 +3,10 @@ package main
 import (
 	"context"
 	"errors"
+	"net/http"
 
 	svrlessgin "github.com/Just-maple/serverless-gin"
+	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/ginS"
 )
 
@@ -18,6 +20,21 @@ type Param struct {
 }
 
 func main() {
+	// raw gin
+	ginS.GET("add/raw", func(c *gin.Context) {
+		type ret struct {
+			Data int `json:"data"`
+		}
+		var param Param
+		err := c.Bind(&param)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		c.JSON(http.StatusOK, ret{Data: param.A + param.B})
+	})
+
+	// easy
 	ginS.GET("add", easy(func(param Param) (int, error) {
 		return param.A + param.B, nil
 	}))
