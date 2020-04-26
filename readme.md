@@ -47,22 +47,23 @@ type Param struct {
 }
 
 func main() {
-	ginS.GET("add", easy(func(ctx context.Context, param Param) (int, error) {
+	ginS.GET("add", easy(func(param Param) (int, error) {
 		return param.A + param.B, nil
 	}))
-	ginS.GET("dec", easy(func(ctx context.Context, param Param) (int, error) {
+	ginS.GET("dec", easy(func(param Param) (int, error) {
 		return param.A - param.B, nil
 	}))
-	ginS.GET("multi", easy(func(ctx context.Context, param Param) (int, error) {
+	ginS.GET("multi", easy(func(param Param) (int, error) {
 		return param.A * param.B, nil
 	}))
-	ginS.GET("divide", easy(func(ctx context.Context, param Param) (int, error) {
+	// if first param is context.Context
+	// will fill in from gin.Context.Request.Context()
+	ginS.GET("divide", easy(func(ctx context.Context, param Param) (float64, error) {
 		if param.B == 0 {
 			return 0, errors.New("b cannot be zero")
 		}
-		return param.A / param.B, nil
+		return float64(param.A) / float64(param.B), nil
 	}))
-
 	panic(ginS.Run(":80"))
 }
 

@@ -46,17 +46,11 @@ func WrapSvcWithIO(io IO, svc interface{}) gin.HandlerFunc {
 		svcV:       v,
 		funcNumIn:  funcNumIn,
 		funcNumOut: svcTyp.NumOut(),
-		types:      make([]reflect.Type, funcNumIn-1, funcNumIn-1),
-		kinds:      make([]reflect.Kind, funcNumIn-1, funcNumIn-1),
+		types:      make([]reflect.Type, funcNumIn, funcNumIn),
+		kinds:      make([]reflect.Kind, funcNumIn, funcNumIn),
 	}
 	if v.Kind() != reflect.Func {
 		panic("invalid service func")
-	}
-	if funcNumIn < 1 {
-		panic("service must has one or more param")
-	}
-	if svcTyp.In(0) != rTypeContext {
-		panic("service first param must be context.Context")
 	}
 	switch funcNumOut {
 	case 1:
@@ -78,30 +72,39 @@ func WrapSvcWithIO(io IO, svc interface{}) gin.HandlerFunc {
 	default:
 		panic("service num out must be one or two")
 	}
-	for i := 1; i < funcNumIn; i++ {
-		ad.types[i-1] = svcTyp.In(i)
-		ad.kinds[i-1] = ad.types[i-1].Kind()
+	for i := 0; i < funcNumIn; i++ {
+		ad.types[i] = svcTyp.In(i)
+		ad.kinds[i] = ad.types[i].Kind()
 	}
 	return ad.ginHandler(io)
 }
 
 func (ad *adapter) ginHandler(io IO) gin.HandlerFunc {
+	firstIsContext := ad.types[0] == rTypeContext
 	return func(c *gin.Context) {
 		newParamV := make([]reflect.Value, ad.funcNumIn, ad.funcNumIn)
-		newParam := make([]interface{}, ad.funcNumIn-1, ad.funcNumIn-1)
-		newParamV[0] = reflect.ValueOf(c.Request.Context())
-		for i := 1; i < ad.funcNumIn; i++ {
-			typ := ad.types[i-1]
+		newParam := make([]interface{}, ad.funcNumIn, ad.funcNumIn)
+		for i := 0; i < ad.funcNumIn; i++ {
+			if i == 0 && firstIsContext {
+				continue
+			}
+			typ := ad.types[i]
 			param := reflect.New(typ)
-			if ad.kinds[i-1] == reflect.Ptr {
+			if ad.kinds[i] == reflect.Ptr {
 				param.Elem().Set(reflect.New(typ.Elem()))
 			}
 			newParamV[i] = param.Elem()
-			newParam[i-1] = param.Interface()
+			newParam[i] = param.Interface()
+		}
+		if firstIsContext {
+			newParam = newParam[1:]
 		}
 		io.ParamHandler(c, newParam)
 		if c.IsAborted() {
 			return
+		}
+		if firstIsContext {
+			newParamV[0] = reflect.ValueOf(c.Request.Context())
 		}
 		retValues := ad.svcV.Call(newParamV)
 		ad.retFunc(c, retValues)

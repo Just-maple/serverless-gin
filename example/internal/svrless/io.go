@@ -19,6 +19,7 @@ type MyIO struct{}
 
 // param handler define how your application fill in empty values and do some global action before param reach service
 // params return ptr of empty values you define in service function except context.Context
+// if your first param is context.Context ,fill from gin.Context.Request.Context()
 // and you can use switch params[i].(type) or c.Bind(params[i]) to unmarshal the http request content to your param
 // for some examples:
 //
