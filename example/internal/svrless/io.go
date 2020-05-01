@@ -19,6 +19,9 @@ type MyController struct{}
 
 // param handler define how your application fill in empty values and do some global action before param reach service
 // params return ptr of empty values you define in service function except context.Context
+//
+// after handle params you should return a bool value to decide the handler continue or not
+//
 // if your first param is context.Context ,fill from gin.Context.Request.Context()
 // and you can use switch params[i].(type) or c.Bind(params[i]) to unmarshal the http request content to your param
 // for some examples:
@@ -37,7 +40,7 @@ type MyController struct{}
 //
 // func (this Compute) Nothing (ctx context.Context) (err error)
 // params values will be []interface{}
-func (l MyController) ParamHandler(c *gin.Context, params []interface{}) {
+func (l MyController) ParamHandler(c *gin.Context, params []interface{}) (ok bool) {
 	paramLen := len(params)
 	switch {
 	default:
@@ -58,7 +61,7 @@ func (l MyController) ParamHandler(c *gin.Context, params []interface{}) {
 				get, ok := c.Get("user_id")
 				if !ok {
 					c.AbortWithStatus(http.StatusUnauthorized)
-					return
+					return false
 				}
 				*typ = common.UserID(get.(string))
 			case *common.IP:
@@ -66,6 +69,8 @@ func (l MyController) ParamHandler(c *gin.Context, params []interface{}) {
 			}
 		}
 	}
+	// all params pass so return true to passing params to service func
+	return true
 }
 
 // response define how your application handle the return value and error from service

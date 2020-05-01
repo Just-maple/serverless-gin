@@ -58,16 +58,17 @@ func NewEasyController(opts ...EasyOption) GinSvcHandler {
 	return CreateGinIOController(eio)
 }
 
-func (l *easyGinController) ParamHandler(c *gin.Context, params []interface{}) {
+func (l *easyGinController) ParamHandler(c *gin.Context, params []interface{}) bool {
 	paramLen := len(params)
 	switch {
 	case paramLen >= 1:
 		if err := c.Bind(params[0]); err != nil {
 			l.logger.Printf("param bind error:%v", err)
 			c.AbortWithStatus(l.errorStatus)
-			return
+			return false
 		}
 	}
+	return true
 }
 
 func (l *easyGinController) Response(c *gin.Context, ret interface{}, err error) {

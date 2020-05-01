@@ -13,7 +13,7 @@ type (
 	GinIOController interface {
 		Response(c *gin.Context, ret interface{}, err error)
 
-		ParamHandler(c *gin.Context, params []interface{})
+		ParamHandler(c *gin.Context, params []interface{}) bool
 	}
 
 	wrapGinIO struct {
@@ -27,13 +27,11 @@ var (
 )
 
 func (io wrapGinIO) Response(w http.ResponseWriter, ret interface{}, err error) {
-
 	io.GinIOController.Response(io.c, ret, err)
 }
 
 func (io wrapGinIO) ParamHandler(w http.ResponseWriter, r *http.Request, params []interface{}) (ok bool) {
-	io.GinIOController.ParamHandler(io.c, params)
-	return !io.c.IsAborted()
+	return io.GinIOController.ParamHandler(io.c, params)
 }
 
 func CreateGinIOController(ginIO GinIOController) GinSvcHandler {
