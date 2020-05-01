@@ -34,14 +34,10 @@ func (io wrapGinIO) ParamHandler(w http.ResponseWriter, r *http.Request, params 
 	return io.GinIOController.ParamHandler(io.c, params)
 }
 
-func CreateGinIOController(ginIO GinIOController) GinSvcHandler {
+func NewWithController(ginIO GinIOController) GinSvcHandler {
 	return func(svc interface{}) gin.HandlerFunc {
-		return HandleSvcWithGinIO(ginIO, svc)
-	}
-}
-
-func HandleSvcWithGinIO(io GinIOController, svc interface{}) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		svc2handler.HandleSvcWithIO(&wrapGinIO{GinIOController: io, c: c}, svc)(c.Writer, c.Request)
+		return func(c *gin.Context) {
+			svc2handler.HandleSvcWithIO(&wrapGinIO{GinIOController: ginIO, c: c}, svc)(c.Writer, c.Request)
+		}
 	}
 }

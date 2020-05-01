@@ -55,7 +55,7 @@ func NewEasyController(opts ...EasyOption) GinSvcHandler {
 	for _, o := range opts {
 		o(eio)
 	}
-	return CreateGinIOController(eio)
+	return NewWithController(eio)
 }
 
 func (l *easyGinController) ParamHandler(c *gin.Context, params []interface{}) bool {

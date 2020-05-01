@@ -8,7 +8,7 @@ import (
 
 var (
 	svr     = gin.Default()
-	wrapper = svrlessgin.CreateGinIOController(MyController{})
+	wrapper = svrlessgin.NewWithController(MyController{})
 )
 
 func main() {
