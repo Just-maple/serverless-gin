@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	easy = svrlessgin.NewEasyWrapper()
+	easy = svrlessgin.NewEasyController()
 )
 
 type Param struct {

@@ -9,15 +9,15 @@ import (
 	"github.com/gin-gonic/gin/render"
 )
 
-var _ IO = &easyIO{}
+var _ GinIOController = &easyGinController{}
 
 type (
-	easyIO struct {
+	easyGinController struct {
 		errorStatus int
 		logger      errLogger
 	}
 
-	EasyOption func(io *easyIO)
+	EasyOption func(io *easyGinController)
 
 	errLogger interface {
 		Printf(msg string, args ...interface{})
@@ -36,29 +36,29 @@ type (
 )
 
 func WithErrorStatus(st int) EasyOption {
-	return func(io *easyIO) {
+	return func(io *easyGinController) {
 		io.errorStatus = st
 	}
 }
 
 func WithLogger(logger errLogger) EasyOption {
-	return func(io *easyIO) {
+	return func(io *easyGinController) {
 		io.logger = logger
 	}
 }
 
-func NewEasyWrapper(opts ...EasyOption) IOWrapper {
-	eio := &easyIO{
+func NewEasyController(opts ...EasyOption) GinSvcHandler {
+	eio := &easyGinController{
 		errorStatus: http.StatusBadRequest,
 		logger:      log.New(os.Stdout, "[GIN] ", log.LstdFlags),
 	}
 	for _, o := range opts {
 		o(eio)
 	}
-	return CreateIOWrapper(eio)
+	return CreateGinIOController(eio)
 }
 
-func (l *easyIO) ParamHandler(c *gin.Context, params []interface{}) {
+func (l *easyGinController) ParamHandler(c *gin.Context, params []interface{}) {
 	paramLen := len(params)
 	switch {
 	case paramLen >= 1:
@@ -70,7 +70,7 @@ func (l *easyIO) ParamHandler(c *gin.Context, params []interface{}) {
 	}
 }
 
-func (l *easyIO) Response(c *gin.Context, ret interface{}, err error) {
+func (l *easyGinController) Response(c *gin.Context, ret interface{}, err error) {
 	res := easyRet{
 		Data: ret,
 		OK:   err == nil,

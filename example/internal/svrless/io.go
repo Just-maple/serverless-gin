@@ -9,13 +9,13 @@ import (
 	"github.com/gin-gonic/gin/render"
 )
 
-var _ svrlessgin.IO = MyIO{}
+var _ svrlessgin.GinIOController = MyController{}
 
-// must implement svrlessgin.IO
-// all service request wrap with io will pass this two method
+// must implement svrlessgin.GinIOController
+// all service request wrap with GinIOController will pass this two method
 // ParamHandler define how your service function get param from http
 // Response define how your service function response param to http
-type MyIO struct{}
+type MyController struct{}
 
 // param handler define how your application fill in empty values and do some global action before param reach service
 // params return ptr of empty values you define in service function except context.Context
@@ -37,7 +37,7 @@ type MyIO struct{}
 //
 // func (this Compute) Nothing (ctx context.Context) (err error)
 // params values will be []interface{}
-func (l MyIO) ParamHandler(c *gin.Context, params []interface{}) {
+func (l MyController) ParamHandler(c *gin.Context, params []interface{}) {
 	paramLen := len(params)
 	switch {
 	default:
@@ -82,7 +82,7 @@ func (l MyIO) ParamHandler(c *gin.Context, params []interface{}) {
 //
 // func (this Compute) Nothing (ctx context.Context) (err error)
 // params values will be nil from Compute.Nothing
-func (l MyIO) Response(c *gin.Context, ret interface{}, err error) {
+func (l MyController) Response(c *gin.Context, ret interface{}, err error) {
 	if err != nil {
 		c.JSON(http.StatusBadRequest, err.Error())
 		return

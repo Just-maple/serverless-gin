@@ -38,7 +38,7 @@ import (
 )
 
 var (
-	easy = svrlessgin.NewEasyWrapper()
+	easy = svrlessgin.NewEasyController()
 )
 
 type Param struct {
@@ -47,6 +47,21 @@ type Param struct {
 }
 
 func main() {
+	// raw gin
+	ginS.GET("add/raw", func(c *gin.Context) {
+		type ret struct {
+			Data int `json:"data"`
+		}
+		var param Param
+		err := c.Bind(&param)
+		if err != nil {
+			c.AbortWithStatus(http.StatusBadRequest)
+			return
+		}
+		c.JSON(http.StatusOK, ret{Data: param.A + param.B})
+	})
+
+	// easy
 	ginS.GET("add", easy(func(param Param) (int, error) {
 		return param.A + param.B, nil
 	}))
@@ -57,7 +72,7 @@ func main() {
 		return param.A * param.B, nil
 	}))
 	// if first param is context.Context
-	// will fill in from gin.Context.Request.Context()
+	// fill from gin.Context.Request.Context()
 	ginS.GET("divide", easy(func(ctx context.Context, param Param) (float64, error) {
 		if param.B == 0 {
 			return 0, errors.New("b cannot be zero")
@@ -66,6 +81,7 @@ func main() {
 	}))
 	panic(ginS.Run(":80"))
 }
+
 
 ```
  
