@@ -2,6 +2,7 @@ package svrlessgin
 
 import (
 	"net/http"
+	"sync"
 
 	"github.com/Just-maple/svc2handler"
 	"github.com/gin-gonic/gin"
@@ -16,28 +17,39 @@ type (
 		ParamHandler(c *gin.Context, params []interface{}) bool
 	}
 
-	wrapGinIO struct {
+	GinIOWrapper struct {
 		GinIOController
+		HandlerFunc http.HandlerFunc
+		ServiceFunc interface{}
+
 		c *gin.Context
 	}
 )
 
 var (
-	_ svc2handler.IOController = &wrapGinIO{}
+	_ svc2handler.IOController = &GinIOWrapper{}
 )
 
-func (io wrapGinIO) Response(w http.ResponseWriter, ret interface{}, err error) {
+func (io *GinIOWrapper) Response(w http.ResponseWriter, ret interface{}, err error) {
 	io.GinIOController.Response(io.c, ret, err)
 }
 
-func (io wrapGinIO) ParamHandler(w http.ResponseWriter, r *http.Request, params []interface{}) (ok bool) {
+func (io *GinIOWrapper) ParamHandler(w http.ResponseWriter, r *http.Request, params []interface{}) (ok bool) {
 	return io.GinIOController.ParamHandler(io.c, params)
 }
 
 func NewWithController(ginIO GinIOController) GinSvcHandler {
 	return func(svc interface{}) gin.HandlerFunc {
+		handlerPool := sync.Pool{New: func() interface{} {
+			r := &GinIOWrapper{GinIOController: ginIO, ServiceFunc: svc}
+			r.HandlerFunc = svc2handler.HandleSvcWithIO(r, r.ServiceFunc)
+			return r
+		}}
 		return func(c *gin.Context) {
-			svc2handler.HandleSvcWithIO(&wrapGinIO{GinIOController: ginIO, c: c}, svc)(c.Writer, c.Request)
+			r := handlerPool.Get().(*GinIOWrapper)
+			r.c = c
+			r.HandlerFunc(c.Writer, c.Request)
+			handlerPool.Put(r)
 		}
 	}
 }
