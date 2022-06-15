@@ -1,7 +1,10 @@
 package svrlessgin
 
 import (
+	"context"
 	"net/http"
+	"reflect"
+	"runtime"
 	"sync"
 
 	"github.com/Just-maple/svc2handler"
@@ -9,6 +12,8 @@ import (
 )
 
 type (
+	ctxKey string
+
 	GinSvcHandler func(svc interface{}) gin.HandlerFunc
 
 	GinIOController interface {
@@ -17,39 +22,63 @@ type (
 		ParamHandler(c *gin.Context, params []interface{}) bool
 	}
 
-	GinIOWrapper struct {
+	ginIOWrapper struct {
 		GinIOController
-		HandlerFunc http.HandlerFunc
-		ServiceFunc interface{}
-
-		c *gin.Context
+		serviceFunc interface{}
+		ginContext  *gin.Context
+		handlerFunc http.HandlerFunc
 	}
 )
 
+const ctxKeyServiceFunc = ctxKey("func")
+
 var (
-	_ svc2handler.IOController = &GinIOWrapper{}
+	_ svc2handler.IOController = &ginIOWrapper{}
 )
 
-func (io *GinIOWrapper) Response(w http.ResponseWriter, ret interface{}, err error) {
-	io.GinIOController.Response(io.c, ret, err)
+func (io *ginIOWrapper) Response(w http.ResponseWriter, ret interface{}, err error) {
+	io.GinIOController.Response(io.ginContext, ret, err)
 }
 
-func (io *GinIOWrapper) ParamHandler(w http.ResponseWriter, r *http.Request, params []interface{}) (ok bool) {
-	return io.GinIOController.ParamHandler(io.c, params)
+func (io *ginIOWrapper) ParamHandler(w http.ResponseWriter, r *http.Request, params []interface{}) (ok bool) {
+	return io.GinIOController.ParamHandler(io.ginContext, params)
+}
+
+func newGinIOWrapperPool(ginIO GinIOController, svc interface{}) sync.Pool {
+	return sync.Pool{
+		New: func() interface{} {
+			r := &ginIOWrapper{GinIOController: ginIO, serviceFunc: svc}
+			r.handlerFunc = svc2handler.HandleSvcWithIO(r, r.serviceFunc)
+			return r
+		},
+	}
+}
+
+func (io *ginIOWrapper) injectServiceFunc() {
+	request := io.ginContext.Request
+	*request = *request.WithContext(context.WithValue(request.Context(), ctxKeyServiceFunc, io.serviceFunc))
+}
+
+func GetServiceFunc(ctx context.Context) (ret interface{}, runtimeFunc *runtime.Func, ok bool) {
+	defer func() {
+		_ = recover()
+	}()
+	f, ok := ctx.Value(ctxKeyServiceFunc).(interface{})
+	if !ok {
+		return
+	}
+	return f, runtime.FuncForPC(reflect.ValueOf(f).Pointer()), true
 }
 
 func NewWithController(ginIO GinIOController) GinSvcHandler {
 	return func(svc interface{}) gin.HandlerFunc {
-		handlerPool := sync.Pool{New: func() interface{} {
-			r := &GinIOWrapper{GinIOController: ginIO, ServiceFunc: svc}
-			r.HandlerFunc = svc2handler.HandleSvcWithIO(r, r.ServiceFunc)
-			return r
-		}}
+		wrapperPool := newGinIOWrapperPool(ginIO, svc)
 		return func(c *gin.Context) {
-			r := handlerPool.Get().(*GinIOWrapper)
-			r.c = c
-			r.HandlerFunc(c.Writer, c.Request)
-			handlerPool.Put(r)
+			wrapper := wrapperPool.Get().(*ginIOWrapper)
+			wrapper.ginContext = c
+			wrapper.injectServiceFunc()
+			wrapper.handlerFunc(c.Writer, c.Request)
+			wrapperPool.Put(wrapper)
 		}
 	}
 }

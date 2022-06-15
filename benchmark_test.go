@@ -2,6 +2,7 @@ package svrlessgin
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -35,6 +36,15 @@ func (m *mockWriter) WriteString(s string) (n int, err error) {
 }
 
 func (m *mockWriter) WriteHeader(int) {}
+
+func runTestRequest(t *testing.T, r *gin.Engine, method, path string) {
+	req, err := http.NewRequest(method, path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w := newMockWriter()
+	r.ServeHTTP(w, req)
+}
 
 func runRequest(B *testing.B, r *gin.Engine, method, path string) {
 	req, err := http.NewRequest(method, path, nil)
@@ -82,6 +92,29 @@ func BenchmarkRun(b *testing.B) {
 	})
 	e.GET("", f)
 	runRequest(b, e, "GET", "")
+}
+
+type service struct{}
+
+func (s service) Func(ctx context.Context, param ST) (err error) {
+	_, f, _ := GetServiceFunc(ctx)
+	fmt.Printf(f.Name() + "\n")
+	return nil
+}
+
+func (s service) Func2(ctx context.Context, param ST) (err error) {
+	_, f, _ := GetServiceFunc(ctx)
+	fmt.Printf(f.Name() + "\n")
+	return nil
+}
+
+func TestServiceName(t *testing.T) {
+	e := gin.New()
+	f := NewWithController(&Ctl{})
+	e.GET("/", f(service{}.Func))
+	e.GET("/2", f(service{}.Func2))
+	runTestRequest(t, e, "GET", "/")
+	runTestRequest(t, e, "GET", "/2")
 }
 
 func BenchmarkRunRaw(b *testing.B) {
