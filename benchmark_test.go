@@ -77,9 +77,6 @@ func (c2 Ctl) Response(c *gin.Context, ret interface{}, err error) {
 }
 
 func (c2 Ctl) ParamHandler(c *gin.Context, params []interface{}) bool {
-	if len(params) > 0 {
-		_ = c.Bind(params[0])
-	}
 	return true
 }
 
@@ -90,27 +87,28 @@ func BenchmarkRun(b *testing.B) {
 	var f = NewWithController(&Ctl{})(func(ctx context.Context, param ST) (err error) {
 		return nil
 	})
-	e.GET("", f)
-	runRequest(b, e, "GET", "")
+	e.GET("/", f)
+	runRequest(b, e, "GET", "/")
 }
 
 type service struct{}
 
 func (s service) Func(ctx context.Context, param ST) (err error) {
-	_, f, _ := GetServiceFunc(ctx)
-	fmt.Printf(f.Name() + "\n")
+	f, _ := GetServiceFunc(ctx)
+	fmt.Printf("%v\n", f)
 	return nil
 }
 
 func (s service) Func2(ctx context.Context, param ST) (err error) {
-	_, f, _ := GetServiceFunc(ctx)
-	fmt.Printf(f.Name() + "\n")
+	f, _ := GetServiceFunc(ctx)
+	fmt.Printf("%v\n", f)
 	return nil
 }
 
 func TestServiceName(t *testing.T) {
 	e := gin.New()
 	f := NewWithController(&Ctl{})
+	SetServiceFuncInject(true)
 	e.GET("/", f(service{}.Func))
 	e.GET("/2", f(service{}.Func2))
 	runTestRequest(t, e, "GET", "/")

@@ -3,8 +3,6 @@ package svrlessgin
 import (
 	"context"
 	"net/http"
-	"reflect"
-	"runtime"
 	"sync"
 
 	"github.com/Just-maple/svc2handler"
@@ -45,6 +43,8 @@ func (io *ginIOWrapper) ParamHandler(w http.ResponseWriter, r *http.Request, par
 }
 
 func newGinIOWrapperPool(ginIO GinIOController, svc interface{}) sync.Pool {
+	// try patch
+	_ = svc2handler.HandleSvcWithIO(&ginIOWrapper{}, svc)
 	return sync.Pool{
 		New: func() interface{} {
 			r := &ginIOWrapper{GinIOController: ginIO, serviceFunc: svc}
@@ -59,24 +59,29 @@ func (io *ginIOWrapper) injectServiceFunc() {
 	*request = *request.WithContext(context.WithValue(request.Context(), ctxKeyServiceFunc, io.serviceFunc))
 }
 
-func GetServiceFunc(ctx context.Context) (ret interface{}, runtimeFunc *runtime.Func, ok bool) {
-	defer func() {
-		_ = recover()
-	}()
-	f, ok := ctx.Value(ctxKeyServiceFunc).(interface{})
-	if !ok {
-		return
-	}
-	return f, runtime.FuncForPC(reflect.ValueOf(f).Pointer()), true
+var serviceFuncInject = false
+
+func SetServiceFuncInject(enable bool) {
+	serviceFuncInject = enable
+}
+
+func GetServiceFunc(ctx context.Context) (ret interface{}, ok bool) {
+	ret, ok = ctx.Value(ctxKeyServiceFunc).(interface{})
+	return
 }
 
 func NewWithController(ginIO GinIOController) GinSvcHandler {
 	return func(svc interface{}) gin.HandlerFunc {
+		if f, ok := svc.(gin.HandlerFunc); ok {
+			return f
+		}
 		wrapperPool := newGinIOWrapperPool(ginIO, svc)
 		return func(c *gin.Context) {
 			wrapper := wrapperPool.Get().(*ginIOWrapper)
 			wrapper.ginContext = c
-			wrapper.injectServiceFunc()
+			if serviceFuncInject {
+				wrapper.injectServiceFunc()
+			}
 			wrapper.handlerFunc(c.Writer, c.Request)
 			wrapperPool.Put(wrapper)
 		}
