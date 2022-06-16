@@ -1,5 +1,7 @@
-github.com/Just-maple/svc2handler v0.0.0-20220615080206-fc91dde76cd7 h1:WVym5MJ1LwoEiSVsJJhE+0s+jIIByOm1Ou3MWHXJifk=
-github.com/Just-maple/svc2handler v0.0.0-20220615080206-fc91dde76cd7/go.mod h1:R5vR/hUeokYNjsNe6tUosFVp1lO0fWtoi8qik6r/jFQ=
+github.com/Just-maple/svc2handler v0.0.0-20220615172606-9c26c6f7b7b7 h1:oGfy+xq0HxqBkyIWo0a7XRzRS6jQwOjhSR5fZwqhxbo=
+github.com/Just-maple/svc2handler v0.0.0-20220615172606-9c26c6f7b7b7/go.mod h1:R5vR/hUeokYNjsNe6tUosFVp1lO0fWtoi8qik6r/jFQ=
+github.com/Just-maple/svc2handler v0.0.0-20220616022219-70718c1d8cad h1:vtlPgIb5BZPc/SrSYtULW0fqIViaCqusCRSi8SuVAW0=
+github.com/Just-maple/svc2handler v0.0.0-20220616022219-70718c1d8cad/go.mod h1:R5vR/hUeokYNjsNe6tUosFVp1lO0fWtoi8qik6r/jFQ=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
